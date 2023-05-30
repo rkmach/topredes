@@ -101,6 +101,8 @@ def handle_add(f: io.TextIOWrapper, db: dict, key: str, value: str):
 def handle(received_data: bytes, f:io.TextIOWrapper, db:dict):
      
     # Rodar a função que trata cada um dos verbos
+    # Cada uma das funções retorna um código de sucesso, caso tudo tenha corrido bem
+    # Ou um código de erro, caso algum tenha ocorrido
     try:
         data = received_data.decode().split()
         print(data)

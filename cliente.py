@@ -63,8 +63,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ssl_context.load_verify_locations(certificate_path)
     ssl_context.load_cert_chain(client_certificate, client_key)
-    # faz o handshake SSL/TLS com o servidor
-    ssl_conn = ssl_context.wrap_socket(s, server_hostname=ip)
+    try:
+        # faz o handshake SSL/TLS com o servidor
+        ssl_conn = ssl_context.wrap_socket(s, server_hostname=ip)
+    except ssl.SSLError:
+        c.print('[red] O servidor não usa TLS. A comunicação não prosseguirá![/]')
+        exit()
     
     
     #----

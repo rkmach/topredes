@@ -80,13 +80,13 @@ ssl_context.load_verify_locations(cafile=client_certificate)
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--unsafe', action='store_true',
-                    help='A boolean switch')
+                    help='Um booleano que define se a conexão ocorrerá com ou sem TLS')
 
 args = parser.parse_args()
 
 if not args.unsafe:
     try:
-        # 
+        # "Embrulha" o socket com o TLS
         tls_listerner_sock = ssl_context.wrap_socket(listerner_sock, server_side=True)
     except ssl.SSLError:
         print("Erro: O cliente não apresentou seu certificado. A comunicação não prosseguirá!")
@@ -94,7 +94,10 @@ if not args.unsafe:
 while 1:
     # espera por uma conexão, então faz o handshake SSL/TLS com o cliente
     try:
-        tls_data_socket, addr = tls_listerner_sock.accept()
+        if args.unsafe:
+            unsafe_data_socket, addr = listerner_sock.accept()
+        else:
+            tls_data_socket, addr = tls_listerner_sock.accept()
     except ssl.SSLError:
         print("Erro: O cliente não apresentou seu certificado. A comunicação não prosseguirá!")
         continue
@@ -102,4 +105,7 @@ while 1:
     # conexão estabelecida!
     print('Conexão estabelecida por', addr)
     # Toda vez que uma nova conexão é estabelecida, cria uma thread para cuidar do socket referente a essa comunicação
-    Thread(target=handle_request, args=(tls_data_socket,)).start()
+    if not args.unsafe:
+        Thread(target=handle_request, args=(tls_data_socket,)).start()
+    else:
+        Thread(target=handle_request, args=(unsafe_data_socket,)).start()
