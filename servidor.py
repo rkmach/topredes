@@ -3,6 +3,10 @@ import ssl
 import os
 from server_handler import handle, get_current_db
 import json
+from threading import Thread, Lock
+
+clients = set()
+clients_lock = Lock()
 
 # define o endereço IP do servidor e a porta a ser usada
 HOST = '127.0.0.1'
@@ -16,36 +20,13 @@ client_certificate = os.path.join(path, 'client.crt')
 client_key = os.path.join(path, 'client.key')
 
 
-# cria um socket do tipo AF_INET (IPv4) e SOCK_STREAM (TCP)
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as data_socket:
-    # associa o socket ao endereço e porta especificados
-    data_socket.bind((HOST, PORT))
-    
-    # coloca o socket em modo de escuta
-    data_socket.listen()
-    print(f'Servidor esperando conexão em {HOST}:{PORT}...')
-    
-    # espera por uma conexão
-    conn, addr = data_socket.accept()
-    with conn:
-        # conexão estabelecida!
-        print('Conexão estabelecida por', addr)
-        
-        # configura o contexto SSL/TLS do servidor
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.verify_mode = ssl.CERT_REQUIRED
-        ssl_context.load_cert_chain(certificate_path, keyfile_path)
-        ssl_context.load_verify_locations(cafile=client_certificate)
-        
-        # faz o handshake SSL/TLS com o cliente
-        try:
-            ssl_conn = ssl_context.wrap_socket(conn, server_side=True)
-        except ssl.SSLError:
-            print("Erro: O cliente não apresentou seu certificado. A comunicação não prosseguirá!")
-            exit()
-        
+def handle_request(tls_data_socket):
+    with tls_data_socket:
+        with clients_lock:
+            clients.add(tls_data_socket)
+
         # espera por uma mensagem do cliente
-        data = ssl_conn.recv(1024)
+        data = tls_data_socket.recv(1024)
         while data != b'Adeus':
             
             # conexão com o banco de dados
@@ -64,12 +45,49 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as data_socket:
             # elabora a resposta do cliente, mostrando o codigo de retorno e a situação atual do banco de dados
             # envia a resposta para o cliente
             code = f'Código: {return_code}'
-            ssl_conn.sendall(code.encode())
+            tls_data_socket.sendall(code.encode())
             
             bd = get_current_db()
-            ssl_conn.sendall(bd.encode())
+            tls_data_socket.sendall(bd.encode())
             
             # espera por uma mensagem do cliente
-            data = ssl_conn.recv(1024)
-        
-        print("Encerrando processo servidor!!")
+            data = tls_data_socket.recv(1024)
+            
+        with clients_lock:
+            clients.remove(tls_data_socket)
+            tls_data_socket.close()
+
+
+# cria um socket do tipo AF_INET (IPv4) e SOCK_STREAM (TCP)
+listerner_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# associa o socket ao endereço e porta especificados
+listerner_sock.bind((HOST, PORT))
+
+# coloca o socket em modo de escuta
+listerner_sock.listen()
+print(f'Servidor esperando conexão em {HOST}:{PORT}...')
+
+# configura o contexto SSL/TLS do servidor
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.verify_mode = ssl.CERT_REQUIRED
+ssl_context.load_cert_chain(certificate_path, keyfile_path)
+ssl_context.load_verify_locations(cafile=client_certificate)
+
+try:
+    tls_listerner_sock = ssl_context.wrap_socket(listerner_sock, server_side=True)
+except ssl.SSLError:
+    print("Erro: O cliente não apresentou seu certificado. A comunicação não prosseguirá!")
+
+while 1:
+    # espera por uma conexão
+    # faz o handshake SSL/TLS com o cliente
+    try:
+        tls_data_socket, addr = tls_listerner_sock.accept()
+    except ssl.SSLError:
+        print("Erro: O cliente não apresentou seu certificado. A comunicação não prosseguirá!")
+        continue
+    
+    # conexão estabelecida!
+    print('Conexão estabelecida por', addr)
+    # Toda vez que uma nova conexão é estabelecida, cria uma thread para cuidar do socket referente a essa comunicação
+    Thread(target=handle_request, args=(tls_data_socket,)).start()
