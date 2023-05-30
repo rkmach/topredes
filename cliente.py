@@ -9,9 +9,6 @@ from rich.markdown import Markdown
 # a rede 127.0.0.0 é usada para testes de loopback, ou seja, usada para que o dispositivo 
 # se comunique consigo mesmo através da pilha TCP/IP
 
-HOST = '127.0.0.1'
-PORT = 65105
-
 path = os.path.dirname(os.path.abspath(__file__))
 certificate_path = os.path.join(path, 'cert.pem')
 keyfile_path = os.path.join(path, 'key.pem')
@@ -36,13 +33,13 @@ $> adicionar chave valor0,valor1,valor2,...
 
 ## Alterar:
 $> alterar chave valor  
-$> alterar chave valor0,valor1,valor2,...
+$> alterar chave valor0,valor1,valor2,...  
 $> alterar chave valor valor_atualizado
 
 ---
 
 ## Remover:
-$> remover chave
+$> remover chave  
 $> remover chave valor0,valor1,valor2,...
 
 ---
@@ -55,16 +52,19 @@ $> consultar
 
 c.print(Markdown(usage, justify='center'))
 
+ip = '127.0.0.1'
+port = 65105
+
 # cria um socket do tipo AF_INET (IPv4) e SOCK_STREAM (TCP)
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     # conecta-se ao servidor
-    s.connect((HOST, PORT))
+    s.connect((ip, port))
     # configura o contexto SSL/TLS do cliente
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ssl_context.load_verify_locations(certificate_path)
     ssl_context.load_cert_chain(client_certificate, client_key)
     # faz o handshake SSL/TLS com o servidor
-    ssl_conn = ssl_context.wrap_socket(s, server_hostname=HOST)
+    ssl_conn = ssl_context.wrap_socket(s, server_hostname=ip)
     
     
     #----
