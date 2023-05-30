@@ -66,9 +66,9 @@ def handle_edit(f: io.TextIOWrapper, db: dict, key: str, value: str, *args):
             f.seek(0)
             json.dump(db, f)
             f.truncate()
-            return '201 - [green]Valor(es) removido(s) com sucesso[/green]'
+            return '201 - [green]Valor(es) alterado(s) com sucesso[/green]'
         except Exception:
-            return '404 - [red]Não foi possível realizar a remoção, confira os dados fornecidos e tente novamente[/red]'
+            return '404 - [red]Não foi possível realizar a alteração, confira os dados fornecidos e tente novamente[/red]'
     
     if key in db.keys():
         # atualizar o valor referente a chave

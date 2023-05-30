@@ -17,8 +17,10 @@ client_key = os.path.join(path, 'client.key')
 
 
 def handle_request(tls_data_socket):
+    # Essa função é executada por uma thread
     with tls_data_socket:
         with clients_lock:
+            # adiciona a conexão ao conjunto de conexões abertas
             clients.add(tls_data_socket)
 
         # espera por uma mensagem do cliente
@@ -50,7 +52,9 @@ def handle_request(tls_data_socket):
             data = tls_data_socket.recv(1024)
             
         with clients_lock:
+            # remove a conexão do conjunto de conexões abertas
             clients.remove(tls_data_socket)
+            # fecha a conexão
             tls_data_socket.close()
 
 # define o endereço IP do servidor e a porta a ser usada

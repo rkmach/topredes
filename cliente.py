@@ -21,7 +21,7 @@ usage = """
 # Modo de Usar:
 
 Esse é um cliente de um servidor que guarda informações sobre o paradigma chave-valor (KVS).  
-Os comandos para consultar, adicionar, remover eu atualizar um par chave-valor serão mostrados a seguir. 
+Os comandos para consultar, adicionar, remover ou atualizar um par chave-valor serão mostrados a seguir. 
 
 --- 
 
